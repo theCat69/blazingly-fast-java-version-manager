@@ -1,0 +1,18 @@
+[package]
+name = "blazingly-fast-java-version-manager"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bf-j-vm"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.3.0", features = ["derive"] }
+directories = "5.0.1"
+lazy_static = "1.4.0"
+serde = { version = "1.0.163", features = ["derive"]}
+serde_json = "1.0.96"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.50.0"

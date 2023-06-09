@@ -1,0 +1,165 @@
+use config::Config;
+use config::JavaVersion;
+use std::path::Path;
+
+use std::env;
+use std::path::PathBuf;
+
+use crate::config;
+
+use crate::config::TMP_DIR;
+
+#[cfg(target_family = "windows")]
+pub struct JavaVersionSwitcher<'a> {
+    running_prompt: RunningPrompt,
+    version: String,
+    local: bool,
+    config: &'a Config,
+}
+
+#[cfg(target_family = "windows")]
+impl JavaVersionSwitcher<'_> {
+    pub fn new(
+        version: String,
+        local: bool,
+        config: &Config,
+        shell: Option<String>,
+    ) -> JavaVersionSwitcher {
+        let running_prompt = match shell {
+            Some(shell_str) => match shell_str.as_str() {
+                "powershell" => RunningPrompt::Powershell,
+                "git_bash" => RunningPrompt::GitBash(TMP_DIR.to_path_buf()),
+                _ => RunningPrompt::Cmd,
+            },
+            None => RunningPrompt::Cmd,
+        };
+        JavaVersionSwitcher {
+            running_prompt,
+            version,
+            local,
+            config,
+        }
+    }
+}
+
+#[cfg(target_family = "windows")]
+pub enum RunningPrompt {
+    Cmd,
+    GitBash(PathBuf),
+    Powershell,
+}
+
+#[cfg(target_family = "windows")]
+pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
+    let config = &java_version_switcher.config;
+    let version = &java_version_switcher.version;
+    let local = java_version_switcher.local;
+
+    let java_version = java_version_switcher
+        .config
+        .java_versions
+        .get(&java_version_switcher.version)
+        .expect("Chosen java version is not configured");
+
+    match java_version_switcher.running_prompt {
+        RunningPrompt::Cmd => println!("Running in cmd"),
+        RunningPrompt::GitBash(_) => println!("Running in git_bash"),
+        RunningPrompt::Powershell => println!("Running in powershell"),
+    }
+
+    if local {
+        local_switch(&config, &version, &java_version);
+    } else {
+        global_switch(&version, &java_version, &config);
+    }
+
+    println!("Java version was set to {}", version);
+}
+
+#[cfg(target_family = "windows")]
+fn local_switch(config: &Config, version: &String, java_version: &JavaVersion) {
+    let mut path = env::var("PATH").expect("Any environment should have a path");
+    append_to_path(config, version, &mut path);
+    write_temp_file(java_version, path);
+}
+
+fn write_temp_file(java_version: &JavaVersion, path: String) {
+    use std::fs;
+    if let Some(tmp_file_path) = env::var("temp_file").ok() {
+        let out = java_version.home_folder.to_string() + "|" + &path;
+        let tmp_file_path = Path::new(&tmp_file_path);
+
+        fs::write(
+            &tmp_file_path
+                .to_str()
+                .expect("Temp file should be resolved on disk"),
+            out,
+        )
+        .expect("Unable to write file");
+    }
+}
+
+#[cfg(target_family = "windows")]
+fn global_switch(version: &String, java_version: &JavaVersion, config: &Config) {
+    use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    // create_subkey opens with write permissions
+    let (env, _) = hkcu.create_subkey("environment").unwrap();
+
+    env.set_value("JAVA_HOME", &java_version.home_folder)
+        .expect("JAVA_HOME should be mutable");
+    let mut path: String = env
+        .get_value("PATH")
+        .expect("PATH should exist in any environment");
+    setup_path(&version, &mut path, config);
+
+    env.set_value("PATH", &path)
+        .expect("PATH should be mutable");
+
+    write_temp_file(java_version, path);
+}
+
+#[cfg(target_family = "windows")]
+fn setup_path(version: &String, path: &mut String, config: &Config) {
+    //first we clean all remaining bin folder for all known java installations
+    for java_version in config.java_versions.values() {
+        *path = path.replace(&home_to_bin_os_path(&java_version.home_folder), "");
+    }
+    // then we append to pah and return
+    append_to_path(config, version, path);
+}
+
+#[cfg(target_family = "windows")]
+fn append_to_path(config: &Config, version: &String, path: &mut String) {
+    let java_home_folder = config
+        .java_versions
+        .get(version)
+        .expect("Chosen java version should be configured")
+        .home_folder
+        .to_string();
+    *path = home_to_bin_os_path(&java_home_folder) + path;
+}
+
+#[cfg(target_family = "windows")]
+fn home_to_bin_os_path(home_path: &String) -> String {
+    let path = Path::new(home_path);
+    let bin_path = path
+        .join("bin")
+        .to_str()
+        .expect("Path to be return as str slice")
+        .to_string();
+    bin_path.replace("/", "\\") + ";"
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::switch::home_to_bin_os_path;
+    use std::assert_eq;
+
+    #[test]
+    fn home_to_bin_os_path_work() {
+        let path = "C:/folder/folder with space/folder".to_string();
+        let result = home_to_bin_os_path(&path);
+        assert_eq!("C:\\folder\\folder with space\\folder\\bin;", result);
+    }
+}

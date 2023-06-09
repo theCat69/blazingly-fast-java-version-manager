@@ -1,0 +1,56 @@
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.copy-script]
+script_runner = "@shell" 
+script = '''
+rm -rf target/bin
+mkdir target/bin
+mkdir target/bin/deps
+cp bin/bf-j-vm.bat target/bin
+cp bin/bf-j-vm-git-bash.sh target/bin/bf-j-vm.sh
+cp target/release/bf-j-vm.exe target/bin/deps
+'''
+
+[tasks.assembly-init]
+script_runner = "@shell"
+script = '''
+rm -rf assembly
+mkdir assembly
+mkdir assembly/tmp
+'''
+
+[tasks.assembly]
+script_runner = "@shell"
+script = '''
+cp -r target/bin/* assembly/tmp
+cd ./assembly/tmp
+zip -r -D ../bf-j-vm.zip ./* 
+cd ../..
+'''
+dependencies = [
+    "copy-script",
+    "assembly-init"
+]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "-r"]
+
+[tasks.dev]
+dependencies = [
+    "build-release",
+    "copy-script"
+]
+
+[tasks.release]
+dependencies = [
+    "clean",
+    "build-release",
+    "assembly"
+]
