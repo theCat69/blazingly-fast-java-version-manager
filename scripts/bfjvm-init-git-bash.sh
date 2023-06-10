@@ -12,7 +12,7 @@ function set_up_bfjvm {
   mkdir "${BFJVM_CURRENT_PROMPT_PATH}"
   mkdir -p "${BFJVM_CURRENT_JAVA_DIR}"
 
-  java_home_to_ln=$(bf-j-vm.sh utility win-to-cyg-path $JAVA_HOME)
+  java_home_to_ln=$(bf-j-vm.sh get current java-home)
 
   ln -sfn "${java_home_to_ln}/" "${BFJVM_CURRENT_JAVA_HOME}"
 

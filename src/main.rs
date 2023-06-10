@@ -8,23 +8,24 @@ mod utility;
 
 use std::error::Error;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use clap::Parser;
 use clap::Subcommand;
-use config::load_config;
 use config::TMP_DIR;
 use lazy_static::lazy_static;
 use switch::switch_java_version;
 use utility::print_rand_uuid;
 use utility::print_win_to_cyg_path;
 
-use crate::config::Config;
+use crate::memory::initialize_memory;
+use crate::memory::Memory;
 use crate::switch::JavaVersionSwitcher;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 lazy_static! {
-    pub static ref CONFIG: Config = load_config().expect("Config should load properly : ");
+    pub static ref MEMORY: Mutex<Memory> = Mutex::new(initialize_memory());
 }
 
 #[derive(Debug, Parser)]
@@ -86,7 +87,17 @@ pub enum GetCommands {
     /// Print informations about the java versions you are requesting
     Versions { version: String },
     /// Get the current configured version
-    Current,
+    Current {
+        #[command(subcommand)]
+        current: GetCurrentCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum GetCurrentCommands {
+    /// Get current java_home system path
+    #[command(alias = "jh")]
+    JavaHome,
 }
 
 #[derive(Debug, Subcommand)]
@@ -123,13 +134,16 @@ fn main() -> Result<()> {
 
     match args.command {
         Commands::Java { java } => match java {
-            JavaCommands::Switch { version, local } => switch_java_version(
-                JavaVersionSwitcher::new(version, local, &CONFIG, running_prompt),
-            ),
+            JavaCommands::Switch { version, local } => {
+                switch_java_version(JavaVersionSwitcher::new(version, local, running_prompt))
+            }
         },
         Commands::Init => init::init_git_bash(),
         Commands::Get { get } => {
-            CONFIG.get(&get, running_prompt);
+            MEMORY
+                .lock()
+                .expect("memory to be accessible")
+                .get(get, running_prompt);
         }
         Commands::Utility { utility } => match utility {
             UtilityCommands::RandUuid => print_rand_uuid(),

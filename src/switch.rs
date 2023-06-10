@@ -8,41 +8,32 @@ use std::process::Command;
 
 use crate::config;
 use crate::RunningPrompt;
+use crate::MEMORY;
 
-#[cfg(target_family = "windows")]
-pub struct JavaVersionSwitcher<'a> {
+pub struct JavaVersionSwitcher {
     running_prompt: RunningPrompt,
     version: String,
     local: bool,
-    config: &'a Config,
 }
 
-#[cfg(target_family = "windows")]
-impl JavaVersionSwitcher<'_> {
-    pub fn new(
-        version: String,
-        local: bool,
-        config: &Config,
-        running_prompt: RunningPrompt,
-    ) -> JavaVersionSwitcher {
+impl JavaVersionSwitcher {
+    pub fn new(version: String, local: bool, running_prompt: RunningPrompt) -> JavaVersionSwitcher {
         JavaVersionSwitcher {
             running_prompt,
             version,
             local,
-            config,
         }
     }
 }
 
-#[cfg(target_family = "windows")]
 pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
-    let config = &java_version_switcher.config;
+    let mut memory = MEMORY.lock().expect("memory to be accessible");
+    let config = &memory.config;
     let version = &java_version_switcher.version;
     let local = java_version_switcher.local;
     let running_prompt = java_version_switcher.running_prompt;
 
-    let java_version = java_version_switcher
-        .config
+    let java_version = config
         .java_versions
         .get(&java_version_switcher.version)
         .expect("Chosen java version is not configured");
@@ -52,6 +43,8 @@ pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
         println!("Java version was set to {} localy", version);
     } else {
         global_switch(&version, &java_version, &config, &running_prompt);
+        memory.java_memory.current_version = version.to_string();
+        memory.save();
         println!("Java version was set to {} globaly", version);
     }
 }

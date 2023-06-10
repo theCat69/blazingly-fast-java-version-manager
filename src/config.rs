@@ -60,10 +60,7 @@ impl Config {
                 println!("{}", config_dir)
             }
             GetCommands::Versions { version } => println!("Printing version {}", version),
-            GetCommands::Current => match &self.current_java_version {
-                Some(ver) => println!("{}", ver),
-                None => panic!("Java version was not configured yet"),
-            },
+            _ => (),
         };
     }
 }
