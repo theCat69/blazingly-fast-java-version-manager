@@ -1,4 +1,5 @@
 mod config;
+mod init;
 mod string_utils;
 mod switch;
 mod utility;
@@ -48,7 +49,8 @@ enum Commands {
     /// Redo initialisation of bf-j-vm
     #[command()]
     Init,
-    /// Get informations from configuration
+    /// Get informations from configuration. Alias : "g"
+    #[command(alias = "g")]
     Get {
         #[command(subcommand)]
         get: GetCommands,

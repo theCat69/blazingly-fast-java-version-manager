@@ -6,31 +6,13 @@
 
 SET ARGS_LIST=%*
 
-set "help_long=--help"
-set "help_short=-h"
-set "help=false"
-
-set "local_long=--local"
-set "local_short=-l"
-set "local=false"
-
 set "switch_long=switch"
 set "switch_short=s"
 set "switch=false"
 
 for %%a in (%ARGS_LIST%) do (
   rem we look for local because on windows it is not possible to change env variable from current prompt  
-  if "%%a"=="%help_long%" (
-    set "help=true"
-    goto :EndLoop
-  ) else if "%%a"=="%help_short%" (
-    set "help=true"
-    goto :EndLoop
-  ) else if "%%a"=="%local_long%" (
-    set "local=true"
-  ) else if "%%a"=="%local_short%" (
-    set "local=true"
-  ) else if "%%a"=="%switch_long%" (
+  if "%%a"=="%switch_long%" (
     set "switch=true"
   ) else if "%%a"=="%switch_short%" (
     set "switch=true"
@@ -39,15 +21,10 @@ for %%a in (%ARGS_LIST%) do (
 
 :EndLoop
 
-if "%help%"=="true" (
-  goto :Help
-)
-
 if "%switch%"=="true" (
   goto :Switch
 )
 
-:Help
 %~dp0\deps\bf-j-vm.exe %* 
 
 goto :End

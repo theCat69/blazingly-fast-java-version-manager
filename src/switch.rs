@@ -111,10 +111,14 @@ fn global_switch(
     config: &Config,
     running_prompt: &RunningPrompt,
 ) {
+    use std::collections::HashSet;
+
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     // create_subkey opens with write permissions
-    let (env, _) = hkcu.create_subkey("environment").unwrap();
+    let (env, _) = hkcu
+        .create_subkey("environment")
+        .expect("To be able to get evenvironement subkey as mutable");
 
     env.set_value("JAVA_HOME", &java_version.home_folder)
         .expect("JAVA_HOME should be mutable");
@@ -125,6 +129,16 @@ fn global_switch(
 
     env.set_value("PATH", &path)
         .expect("PATH should be mutable");
+
+    let path = match env::var("PATH").ok() {
+        Some(envpath) => {
+            let set_path: HashSet<_> = path.split(";").chain(envpath.split(";")).collect();
+            let vec_path: Vec<&str> = set_path.into_iter().collect();
+            vec_path.join(";")
+        }
+        None => path,
+    };
+
     if let RunningPrompt::GitBash(_) = running_prompt {
         change_symlink_git_bash(java_version);
     }
