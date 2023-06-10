@@ -26,17 +26,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+args=("--shell" "git_bash" "${args[@]}")
+
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-if [ ! -z "$HELP" ]; then
-  $SCRIPTPATH/deps/bf-j-vm.exe "${args[@]}"
-elif [[ ! -z "$VERSION" && ! -z "$LOCAL" ]]; then
-  $SCRIPTPATH/deps/bf-j-vm.exe -h 
-  echo Changing local version on git bash is not supported
-elif [[ ! -z "$VERSION" ]]; then
-  args+=('--shell')
-  args+=('git_bash')
-  $SCRIPTPATH/deps/bf-j-vm.exe "${args[@]}"
-else
-  $SCRIPTPATH/deps/bf-j-vm.exe "${args[@]}"
-fi
+$SCRIPTPATH/deps/bf-j-vm.exe "${args[@]}"

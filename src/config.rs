@@ -1,20 +1,19 @@
-use core::fmt;
 use std::error::Error;
-use std::fmt::Display;
 use std::fs::File;
 
 use std::io::Write;
 use std::panic;
 use std::path::Path;
 use std::path::PathBuf;
-use std::write;
 use std::{collections::HashMap, fs, println};
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
+use crate::string_utils;
 use crate::GetCommands;
+use crate::RunningPrompt;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -40,19 +39,32 @@ pub struct JavaVersion {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub user_current_jdk: PathBuf,
+    pub current_java_version: Option<String>,
     pub java_versions: HashMap<String, JavaVersion>,
 }
 
 impl Config {
-    pub fn get(&self, command: &GetCommands) {
+    pub fn get(&self, command: &GetCommands, running_prompt: RunningPrompt) {
         match command {
             GetCommands::Config => println!(
                 "{}",
                 serde_json::to_string_pretty(self)
                     .expect("To be able to deserialize configuration")
             ),
-            GetCommands::ConfigPath => println!("{}", CONFIG_DIR.to_string_lossy()),
+            GetCommands::ConfigPath => {
+                let config_dir = match running_prompt {
+                    RunningPrompt::GitBash(_) => {
+                        string_utils::win_to_cyg_path(&CONFIG_DIR.to_string_lossy())
+                    }
+                    _ => CONFIG_DIR.to_string_lossy().to_string(),
+                };
+                println!("{}", config_dir)
+            }
             GetCommands::Versions { version } => println!("Printing version {}", version),
+            GetCommands::Current => match &self.current_java_version {
+                Some(ver) => println!("{}", ver),
+                None => panic!("Java version was not configured yet"),
+            },
         };
     }
 }
@@ -62,6 +74,7 @@ impl ::std::default::Default for Config {
         let java_versions: HashMap<String, JavaVersion> = HashMap::new();
         Config {
             user_current_jdk: BFJVM_DIR.to_path_buf(),
+            current_java_version: None,
             java_versions,
         }
     }
@@ -84,6 +97,10 @@ fn load_config_from_file() -> Result<Config> {
 
 fn init_config_file() -> Result<Config> {
     let config = Config::default();
+    Ok(write_config(config)?)
+}
+
+pub fn write_config(config: Config) -> std::result::Result<Config, Box<dyn Error>> {
     let json_config = serde_json::to_string_pretty(&config)?;
     let mut file = File::create(CONFIG_FILE.to_path_buf())?;
     file.write_all(json_config.as_bytes())?;
