@@ -1,5 +1,5 @@
-use std::io::{BufRead, BufReader, BufWriter, Read};
-use std::os::windows::prelude::FileExt;
+use std::fs::OpenOptions;
+use std::io::{BufWriter, Read};
 use std::{
     env,
     fs::{self, File},
@@ -7,10 +7,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    config::{Config, CONFIG_DIR},
-    RunningPrompt,
-};
+use crate::proj_dirs::CONFIG_DIR;
+use crate::string_utils;
+use crate::{config::Config, RunningPrompt};
 
 use lazy_static::lazy_static;
 
@@ -20,53 +19,50 @@ lazy_static! {
 
 pub fn init(config: &Config, running_prompt: RunningPrompt) {}
 
-pub fn init_git_bash(config: &Config) {
+pub fn init_git_bash() {
     let init_dir = GIT_BASH_INIT_SCRIPT_DIR.to_path_buf();
     fs::create_dir_all(&init_dir).expect("To be able to create git bash init dir");
     let init_file_name = "bfjvm-init-git-bash.sh";
-    let mut file = File::create(Path::join(&init_dir, init_file_name))
-        .expect("To be able to create init file");
+    let init_file_path = Path::join(&init_dir, init_file_name);
+    let mut file = File::create(&init_file_path).expect("To be able to create init file");
 
     let script_path = env::var("BFJVM_SCRIPTPATH").expect("BFJVM_SCRIPTPATH to be set");
     let mut buff: Vec<u8> = Vec::new();
     File::open(Path::new(&script_path).join("scripts").join(init_file_name))
         .expect("To be able to read from original init git bash file")
-        .read(&mut buff)
+        .read_to_end(&mut buff)
         .expect("To be able to read content and write to buffer");
     file.write(&buff).expect("To be able to wite to init file");
 
     let home = env::var("HOME").expect("HOME env to be set");
-    let file = File::open(home + "/.bashrc");
+
+    let bashrc = home + "/.bashrc";
+    let bashrc_content = fs::read_to_string(&bashrc).expect("To be able to read bashrc content");
+    //TODO delete this part from the file
+    if bashrc_content.contains("##### BFJVM FLAG #####") {
+        panic!("Git bash was already initialize ! You can delete BFJVM FLAG and content from bashrc to redo initialization")
+    }
+
+    let file = OpenOptions::new().append(true).open(bashrc);
     match file {
-        Ok(_f) => {
-            //     let reader = BufReader::new(f);
-            //     while let Some(line) = reader.read_line(buf).ok() {
-            //           if let Some(l) = line.ok() {
-            //             if l == "##### BFJVM FLAG #####" {
-            //                 panic!("Git bash is already initializie !");
-            //             }
-            //         }
-            //
-            //     }
-            //     for line in reader.li() {
-            //         if let Some(l) = line.ok() {
-            //             if l == "##### BFJVM FLAG #####" {
-            //                 panic!("Git bash is already initializie !");
-            //             }
-            //         }
-            //     }
-            //     let writer = BufWriter::new(f);
-            //     vec_to_write.push("##### BFJVM FLAG #####".to_string().as_bytes());
-            //     vec_to_write.push("##### END BFJVM FLAG #####".to_string().as_bytes());
-            //
-            //     f.seek_write(buf, reader.)
+        Ok(f) => {
+            let mut writer = BufWriter::new(f);
+            let _ = writer.write_all(
+                ("
+##### BFJVM FLAG #####
+
+export BFJVM_INIT_FILE=\""
+                    .to_string()
+                    + &string_utils::win_to_cyg_path(init_file_path.to_str().unwrap())
+                    + "\"
+[[ -z \"${BFJVM_INIT_FILE}\" ]] || source \"${BFJVM_INIT_FILE}\"
+
+##### END BFJVM FLAG #####")
+                    .as_bytes(),
+            );
         }
-        //##### BFJVM FLAG #####
-        //
-        // export BFJVM_INIT_FILE="a path"
-        // [[ -z "${BFJVM_INIT_FILE}" ]] && source "${BFJVM_INIT_FILE}"
-        //
-        // #### END BFJVM FLAG #####
         Err(err) => panic!("Error occured will initializing git bash quitting ... {err}"),
     };
+
+    println!("Git bash was intilialized please restart your prompt")
 }

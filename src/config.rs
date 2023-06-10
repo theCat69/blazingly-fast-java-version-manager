@@ -7,10 +7,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::{collections::HashMap, fs, println};
 
-use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
+use crate::proj_dirs::CONFIG_DIR;
 use crate::string_utils;
 use crate::GetCommands;
 use crate::RunningPrompt;
@@ -18,7 +18,6 @@ use crate::RunningPrompt;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 lazy_static! {
-    pub static ref CONFIG_DIR: PathBuf = init_config_dir();
     pub static ref CONFIG_FILE: PathBuf = Path::join(&CONFIG_DIR, "bf-j-vm.json");
     pub static ref BFJVM_DIR: PathBuf = Path::join(&CONFIG_DIR, "current");
     pub static ref TMP_DIR: PathBuf = Path::join(&CONFIG_DIR, "tmp");
@@ -105,17 +104,4 @@ pub fn write_config(config: Config) -> std::result::Result<Config, Box<dyn Error
     let mut file = File::create(CONFIG_FILE.to_path_buf())?;
     file.write_all(json_config.as_bytes())?;
     Ok(config)
-}
-
-fn init_config_dir() -> PathBuf {
-    match ProjectDirs::from("rs", "", "bf-j-vm") {
-        Some(proj_dirs) => {
-            let config_directory = proj_dirs.config_dir();
-            match fs::create_dir_all(config_directory) {
-                Ok(()) => config_directory.to_path_buf(),
-                Err(err) => panic!("Error creating config dir : {err}"),
-            }
-        }
-        None => panic!("Error creating config dir"),
-    }
 }

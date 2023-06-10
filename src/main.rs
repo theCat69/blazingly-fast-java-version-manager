@@ -1,5 +1,7 @@
 mod config;
 mod init;
+mod memory;
+mod proj_dirs;
 mod string_utils;
 mod switch;
 mod utility;
@@ -125,7 +127,7 @@ fn main() -> Result<()> {
                 JavaVersionSwitcher::new(version, local, &CONFIG, running_prompt),
             ),
         },
-        Commands::Init => (),
+        Commands::Init => init::init_git_bash(),
         Commands::Get { get } => {
             CONFIG.get(&get, running_prompt);
         }
