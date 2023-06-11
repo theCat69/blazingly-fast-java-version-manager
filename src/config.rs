@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fs::File;
 
 use std::io::Write;
-use std::panic;
 use std::path::Path;
 use std::path::PathBuf;
 use std::{collections::HashMap, fs, println};
@@ -59,7 +58,6 @@ impl Config {
                 };
                 println!("{}", config_dir)
             }
-            GetCommands::Versions { version } => println!("Printing version {}", version),
             _ => (),
         };
     }

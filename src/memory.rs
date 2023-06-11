@@ -97,17 +97,16 @@ impl Memory {
 pub fn initialize_memory() -> Memory {
     let mut memory: Memory;
     if !MEMORY_FILE.is_file() {
-        let conf = match config::load_config() {
-            Ok(conf) => conf,
-            Err(err) => panic!("Cannot load config ! {err}"),
-        };
+        let conf = load_conf_or_panic();
         memory = init_memory_file(conf);
     } else {
         memory = load_memory_file();
         match read_hash_and_compare(&memory.config_hash) {
-            Ok(are_equals) => {
+            Ok((new_sha, are_equals)) => {
                 if !are_equals {
-                    memory.mergeconfig(config::load_config().unwrap());
+                    println!("Config was changed since last start. Loading it.");
+                    memory.mergeconfig(load_conf_or_panic());
+                    memory.config_hash = new_sha;
                     memory.save();
                 }
             }
@@ -115,6 +114,14 @@ pub fn initialize_memory() -> Memory {
         }
     }
     memory
+}
+
+fn load_conf_or_panic() -> Config {
+    let conf = match config::load_config() {
+        Ok(conf) => conf,
+        Err(err) => panic!("Cannot load config ! {err}"),
+    };
+    conf
 }
 
 fn init_memory_file(config: Config) -> Memory {
@@ -142,7 +149,7 @@ fn load_from_binaries() -> Result<Memory> {
     Ok(bincode::deserialize(&file)?)
 }
 
-fn read_hash_and_compare(saved_hash: &str) -> Result<bool> {
+fn read_hash_and_compare(saved_hash: &str) -> Result<(String, bool)> {
     let sha = sha256::try_digest(CONFIG_FILE.as_path())?;
-    Ok(sha.as_str() == saved_hash)
+    Ok((sha.to_string(), sha == saved_hash))
 }
