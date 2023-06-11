@@ -43,12 +43,12 @@ pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
 
     if local {
         local_switch(&config, &version, &java_version, &running_prompt);
-        println!("Java version was set to {} localy", version);
+        println!("Java version was set to {} locally", version);
     } else {
         global_switch(&version, &java_version, &config, &running_prompt);
         memory.java_memory.current_version = version.to_string();
         memory.save();
-        println!("Java version was set to {} globaly", version);
+        println!("Java version was set to {} globally", version);
     }
 }
 
