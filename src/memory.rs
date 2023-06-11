@@ -1,7 +1,5 @@
 use std::{
-    env,
-    error::Error,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -11,10 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{self, Config, CONFIG_FILE},
     proj_dirs::DATA_DIR,
-    string_utils, GetCommands, GetCurrentCommands, RunningPrompt,
+    string_utils, GetCommands, GetCurrentCommands, Result, RunningPrompt,
 };
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 lazy_static! {
     pub static ref MEMORY_FILE: PathBuf = Path::join(&DATA_DIR, "bfjvm-memory");

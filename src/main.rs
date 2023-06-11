@@ -22,7 +22,7 @@ use crate::memory::initialize_memory;
 use crate::memory::Memory;
 use crate::switch::JavaVersionSwitcher;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 lazy_static! {
     pub static ref MEMORY: Mutex<Memory> = Mutex::new(initialize_memory());
@@ -51,7 +51,10 @@ enum Commands {
 
     /// Redo initialisation of bf-j-vm
     #[command()]
-    Init,
+    Init {
+        #[command(subcommand)]
+        init: InitCommands,
+    },
     /// Get informations from configuration. Alias : "g"
     #[command(alias = "g")]
     Get {
@@ -65,6 +68,14 @@ enum Commands {
         #[command(subcommand)]
         utility: UtilityCommands,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum InitCommands {
+    /// Initialize git_bash you might be need to run it after updating bfjvm version
+    GitBash,
+    /// That clean and redo init of bfjvm. This will make backup of your configuration files (TODO)
+    Full,
 }
 
 #[derive(Debug, Subcommand)]
@@ -138,7 +149,10 @@ fn main() -> Result<()> {
                 switch_java_version(JavaVersionSwitcher::new(version, local, running_prompt))
             }
         },
-        Commands::Init => init::init_git_bash(),
+        Commands::Init { init } => match init {
+            InitCommands::GitBash => init::init_git_bash(running_prompt),
+            InitCommands::Full => todo!(),
+        },
         Commands::Get { get } => {
             MEMORY
                 .lock()

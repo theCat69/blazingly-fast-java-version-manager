@@ -12,9 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::proj_dirs::CONFIG_DIR;
 use crate::string_utils;
 use crate::GetCommands;
+use crate::Result;
 use crate::RunningPrompt;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 lazy_static! {
     pub static ref CONFIG_FILE: PathBuf = Path::join(&CONFIG_DIR, "bf-j-vm.json");
