@@ -61,6 +61,12 @@ impl Config {
             _ => (),
         };
     }
+
+    pub fn get_javaversion(self: &Self, version: &str) -> &JavaVersion {
+        self.java_versions
+            .get(version)
+            .expect("Chosen java version should be configured")
+    }
 }
 
 impl ::std::default::Default for Config {

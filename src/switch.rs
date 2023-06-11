@@ -128,7 +128,13 @@ fn global_switch(
 
     let path = match env::var("PATH").ok() {
         Some(envpath) => {
-            let mut vec_paths: Vec<&str> = path.split(";").chain(envpath.split(";")).collect();
+            let home = home_to_bin_os_path(&java_version.home_folder);
+            let vec_java_home: Vec<&str> = vec![&home];
+            let mut vec_paths: Vec<&str> = vec_java_home
+                .into_iter()
+                .chain(envpath.split(";"))
+                .chain(path.split(";"))
+                .collect();
             let mut seen = HashSet::new();
             vec_paths.retain(|item| seen.insert(*item));
             vec_paths.join(";")
@@ -154,12 +160,7 @@ fn setup_path(version: &String, path: &mut String, config: &Config) {
 
 #[cfg(target_family = "windows")]
 fn append_to_path(config: &Config, version: &String, path: &mut String) {
-    let java_home_folder = config
-        .java_versions
-        .get(version)
-        .expect("Chosen java version should be configured")
-        .home_folder
-        .to_string();
+    let java_home_folder = config.get_javaversion(version).home_folder.to_string();
     *path = home_to_bin_os_path(&java_home_folder) + path;
 }
 
