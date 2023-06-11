@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Copyright (C) 2023 Félix Vadcard
+# see LINCENCE.txt for details
+
 args=("$@")
 args=("--shell" "git_bash" "${args[@]}")
 

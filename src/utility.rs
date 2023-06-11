@@ -1,3 +1,6 @@
+// Copyright (C) 2023 Félix Vadcard
+// see LINCENCE.txt for details
+
 use uuid::Uuid;
 
 use crate::string_utils;

@@ -1,6 +1,5 @@
-:: Place both this script create a deps folder and put bf-j-vm.exe and refrenv.bat then put the script 
-:: folder in one of the folders in your %PATH%. You can open your environment variables by running 
-:: "rundll32.exe sysdm.cpl,EditEnvironmentVariables"
+rem Copyright (C) 2023 Félix Vadcard
+rem see LINCENCE.txt for details
 
 @echo off 
 

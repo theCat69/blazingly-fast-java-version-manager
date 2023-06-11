@@ -1,3 +1,6 @@
+// Copyright (C) 2023 Félix Vadcard
+// see LINCENCE.txt for details
+
 use config::Config;
 use config::JavaVersion;
 use std::fs;
