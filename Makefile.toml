@@ -12,9 +12,25 @@ script = '''
 rm -rf target/bin
 mkdir target/bin
 mkdir target/bin/deps
+cp target/release/bf-j-vm.exe target/bin/deps
+'''
+
+[tasks.copy-script-os]
+script_runner = "@shell" 
+script = '''
+mkdir target/bin/scripts
 cp bin/bf-j-vm.bat target/bin
 cp bin/bf-j-vm-git-bash.sh target/bin/bf-j-vm.sh
-cp target/release/bf-j-vm.exe target/bin/deps
+cp scripts/bfjvm-init-git-bash.sh target/bin/scripts
+'''
+dependencies = [
+  "copy-script",
+]
+
+[tasks.copy-script-os.linux]
+script_runner = "@shell" 
+script = '''
+echo not supported yet 
 '''
 
 [tasks.assembly-init]
@@ -34,7 +50,7 @@ zip -r -D ../bf-j-vm.zip ./*
 cd ../..
 '''
 dependencies = [
-    "copy-script",
+    "copy-script-os",
     "assembly-init"
 ]
 
@@ -45,7 +61,7 @@ args = ["build", "-r"]
 [tasks.dev]
 dependencies = [
     "build-release",
-    "copy-script"
+    "copy-script-os"
 ]
 
 [tasks.release]

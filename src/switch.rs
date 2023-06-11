@@ -1,90 +1,88 @@
 use config::Config;
 use config::JavaVersion;
+use std::fs;
 use std::path::Path;
 
 use std::env;
-use std::path::PathBuf;
+use std::process::Command;
 
 use crate::config;
+use crate::RunningPrompt;
+use crate::MEMORY;
 
-use crate::config::TMP_DIR;
-
-#[cfg(target_family = "windows")]
-pub struct JavaVersionSwitcher<'a> {
+pub struct JavaVersionSwitcher {
     running_prompt: RunningPrompt,
     version: String,
     local: bool,
-    config: &'a Config,
 }
 
-#[cfg(target_family = "windows")]
-impl JavaVersionSwitcher<'_> {
-    pub fn new(
-        version: String,
-        local: bool,
-        config: &Config,
-        shell: Option<String>,
-    ) -> JavaVersionSwitcher {
-        let running_prompt = match shell {
-            Some(shell_str) => match shell_str.as_str() {
-                "powershell" => RunningPrompt::Powershell,
-                "git_bash" => RunningPrompt::GitBash(TMP_DIR.to_path_buf()),
-                _ => RunningPrompt::Cmd,
-            },
-            None => RunningPrompt::Cmd,
-        };
+impl JavaVersionSwitcher {
+    pub fn new(version: String, local: bool, running_prompt: RunningPrompt) -> JavaVersionSwitcher {
         JavaVersionSwitcher {
             running_prompt,
             version,
             local,
-            config,
         }
     }
 }
 
-#[cfg(target_family = "windows")]
-pub enum RunningPrompt {
-    Cmd,
-    GitBash(PathBuf),
-    Powershell,
-}
-
-#[cfg(target_family = "windows")]
 pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
-    let config = &java_version_switcher.config;
+    let mut memory = MEMORY.lock().expect("memory to be accessible");
+    let config = &memory.config;
     let version = &java_version_switcher.version;
     let local = java_version_switcher.local;
+    let running_prompt = java_version_switcher.running_prompt;
 
-    let java_version = java_version_switcher
-        .config
+    let java_version = config
         .java_versions
         .get(&java_version_switcher.version)
         .expect("Chosen java version is not configured");
 
-    match java_version_switcher.running_prompt {
-        RunningPrompt::Cmd => println!("Running in cmd"),
-        RunningPrompt::GitBash(_) => println!("Running in git_bash"),
-        RunningPrompt::Powershell => println!("Running in powershell"),
-    }
-
     if local {
-        local_switch(&config, &version, &java_version);
+        local_switch(&config, &version, &java_version, &running_prompt);
+        println!("Java version was set to {} localy", version);
     } else {
-        global_switch(&version, &java_version, &config);
+        global_switch(&version, &java_version, &config, &running_prompt);
+        memory.java_memory.current_version = version.to_string();
+        memory.save();
+        println!("Java version was set to {} globaly", version);
     }
-
-    println!("Java version was set to {}", version);
 }
 
 #[cfg(target_family = "windows")]
-fn local_switch(config: &Config, version: &String, java_version: &JavaVersion) {
-    let mut path = env::var("PATH").expect("Any environment should have a path");
-    append_to_path(config, version, &mut path);
-    write_temp_file(java_version, path);
+fn local_switch(
+    config: &Config,
+    version: &String,
+    java_version: &JavaVersion,
+    running_prompt: &RunningPrompt,
+) {
+    match running_prompt {
+        RunningPrompt::Cmd => {
+            let mut path = env::var("PATH").expect("Any environment should have a path");
+            append_to_path(config, version, &mut path);
+            write_temp_file_if_needed(java_version, path);
+        }
+        RunningPrompt::GitBash(_) => {
+            change_symlink_git_bash(java_version);
+        }
+        RunningPrompt::Powershell => panic!("Powershell not supported yet"),
+    }
 }
 
-fn write_temp_file(java_version: &JavaVersion, path: String) {
-    use std::fs;
+#[cfg(target_family = "windows")]
+fn change_symlink_git_bash(java_version: &JavaVersion) {
+    let current_java_home = env::var("BFJVM_CURRENT_JAVA_HOME")
+        .expect("BFJVM_CURRENT_JAVA_HOME env variable should always be set when using git_bash");
+    fs::remove_dir_all(&current_java_home).expect("To be able to remove symlink directory");
+    Command::new("ln")
+        .arg("-sfn")
+        .arg(&java_version.home_folder)
+        .arg(&current_java_home)
+        .spawn()
+        .expect("To be able to create symlink to new java version");
+}
+
+fn write_temp_file_if_needed(java_version: &JavaVersion, path: String) {
     if let Some(tmp_file_path) = env::var("temp_file").ok() {
         let out = java_version.home_folder.to_string() + "|" + &path;
         let tmp_file_path = Path::new(&tmp_file_path);
@@ -100,11 +98,20 @@ fn write_temp_file(java_version: &JavaVersion, path: String) {
 }
 
 #[cfg(target_family = "windows")]
-fn global_switch(version: &String, java_version: &JavaVersion, config: &Config) {
+fn global_switch(
+    version: &String,
+    java_version: &JavaVersion,
+    config: &Config,
+    running_prompt: &RunningPrompt,
+) {
+    use std::collections::HashSet;
+
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     // create_subkey opens with write permissions
-    let (env, _) = hkcu.create_subkey("environment").unwrap();
+    let (env, _) = hkcu
+        .create_subkey("environment")
+        .expect("To be able to get evenvironement subkey as mutable");
 
     env.set_value("JAVA_HOME", &java_version.home_folder)
         .expect("JAVA_HOME should be mutable");
@@ -116,7 +123,19 @@ fn global_switch(version: &String, java_version: &JavaVersion, config: &Config) 
     env.set_value("PATH", &path)
         .expect("PATH should be mutable");
 
-    write_temp_file(java_version, path);
+    let path = match env::var("PATH").ok() {
+        Some(envpath) => {
+            let set_path: HashSet<_> = path.split(";").chain(envpath.split(";")).collect();
+            let vec_path: Vec<&str> = set_path.into_iter().collect();
+            vec_path.join(";")
+        }
+        None => path,
+    };
+
+    if let RunningPrompt::GitBash(_) = running_prompt {
+        change_symlink_git_bash(java_version);
+    }
+    write_temp_file_if_needed(java_version, path);
 }
 
 #[cfg(target_family = "windows")]
@@ -149,6 +168,19 @@ fn home_to_bin_os_path(home_path: &String) -> String {
         .expect("Path to be return as str slice")
         .to_string();
     bin_path.replace("/", "\\") + ";"
+}
+
+#[cfg(target_family = "windows")]
+fn home_to_cyg_path(home_path: &String) -> String {
+    use crate::string_utils;
+
+    let path = Path::new(home_path);
+    let bin_path = path
+        .join("bin")
+        .to_str()
+        .expect("Path to be return as str slice")
+        .to_string();
+    string_utils::win_to_cyg_path(&(bin_path + ";"))
 }
 
 #[cfg(test)]

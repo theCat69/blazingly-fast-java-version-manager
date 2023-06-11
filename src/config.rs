@@ -1,25 +1,21 @@
-use core::fmt;
 use std::error::Error;
-use std::fmt::Display;
 use std::fs::File;
 
 use std::io::Write;
-use std::panic;
 use std::path::Path;
 use std::path::PathBuf;
-use std::write;
 use std::{collections::HashMap, fs, println};
 
-use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
+use crate::proj_dirs::CONFIG_DIR;
+use crate::string_utils;
 use crate::GetCommands;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+use crate::Result;
+use crate::RunningPrompt;
 
 lazy_static! {
-    pub static ref CONFIG_DIR: PathBuf = init_config_dir();
     pub static ref CONFIG_FILE: PathBuf = Path::join(&CONFIG_DIR, "bf-j-vm.json");
     pub static ref BFJVM_DIR: PathBuf = Path::join(&CONFIG_DIR, "current");
     pub static ref TMP_DIR: PathBuf = Path::join(&CONFIG_DIR, "tmp");
@@ -40,19 +36,28 @@ pub struct JavaVersion {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub user_current_jdk: PathBuf,
+    pub current_java_version: Option<String>,
     pub java_versions: HashMap<String, JavaVersion>,
 }
 
 impl Config {
-    pub fn get(&self, command: &GetCommands) {
+    pub fn get(&self, command: &GetCommands, running_prompt: RunningPrompt) {
         match command {
             GetCommands::Config => println!(
                 "{}",
                 serde_json::to_string_pretty(self)
                     .expect("To be able to deserialize configuration")
             ),
-            GetCommands::ConfigPath => println!("{}", CONFIG_DIR.to_string_lossy()),
-            GetCommands::Versions { version } => println!("Printing version {}", version),
+            GetCommands::ConfigPath => {
+                let config_dir = match running_prompt {
+                    RunningPrompt::GitBash(_) => {
+                        string_utils::win_to_cyg_path(&CONFIG_DIR.to_string_lossy())
+                    }
+                    _ => CONFIG_DIR.to_string_lossy().to_string(),
+                };
+                println!("{}", config_dir)
+            }
+            _ => (),
         };
     }
 }
@@ -62,6 +67,7 @@ impl ::std::default::Default for Config {
         let java_versions: HashMap<String, JavaVersion> = HashMap::new();
         Config {
             user_current_jdk: BFJVM_DIR.to_path_buf(),
+            current_java_version: None,
             java_versions,
         }
     }
@@ -84,21 +90,12 @@ fn load_config_from_file() -> Result<Config> {
 
 fn init_config_file() -> Result<Config> {
     let config = Config::default();
+    Ok(write_config(config)?)
+}
+
+pub fn write_config(config: Config) -> std::result::Result<Config, Box<dyn Error>> {
     let json_config = serde_json::to_string_pretty(&config)?;
     let mut file = File::create(CONFIG_FILE.to_path_buf())?;
     file.write_all(json_config.as_bytes())?;
     Ok(config)
-}
-
-fn init_config_dir() -> PathBuf {
-    match ProjectDirs::from("rs", "", "bf-j-vm") {
-        Some(proj_dirs) => {
-            let config_directory = proj_dirs.config_dir();
-            match fs::create_dir_all(config_directory) {
-                Ok(()) => config_directory.to_path_buf(),
-                Err(err) => panic!("Error creating config dir : {err}"),
-            }
-        }
-        None => panic!("Error creating config dir"),
-    }
 }
