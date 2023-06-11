@@ -1,5 +1,5 @@
 // Copyright (C) 2023 Félix Vadcard
-// see LINCENCE.txt for details
+// see main.rs for details
 
 use uuid::Uuid;
 

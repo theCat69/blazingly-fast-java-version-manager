@@ -1,5 +1,5 @@
 // Copyright (C) 2023 Félix Vadcard
-// see LINCENCE.txt for details
+// see main.rs for details
 
 #[cfg(target_family = "windows")]
 pub fn win_to_cyg_path(win_path: &str) -> String {
