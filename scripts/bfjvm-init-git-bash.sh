@@ -1,3 +1,6 @@
+# Copyright (C) 2023 Félix Vadcard
+# see LINCENCE.txt for details
+
 function set_up_bfjvm {
   export BFJVM_CONFIG_PATH=$(bf-j-vm.sh get config-path)
 

@@ -2,6 +2,13 @@
 name = "blazingly-fast-java-version-manager"
 version = "0.1.0"
 edition = "2021"
+authors = ["Félix Vadcard <vadcard.felix@gmail.com>"]
+description = "Simple, fast and efficient java version manager"
+repository = "https://github.com/theCat69/blazingly-fast-java-version-manager"
+readme = "Readme.md"
+license = "GPL-3.0-or-later"
+keywords = ["java", "version", "manager"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "bf-j-vm"

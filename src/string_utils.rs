@@ -1,3 +1,6 @@
+// Copyright (C) 2023 Félix Vadcard
+// see LINCENCE.txt for details
+
 #[cfg(target_family = "windows")]
 pub fn win_to_cyg_path(win_path: &str) -> String {
     let win_path_splitted = win_path.split(";").map(|st| st.to_string());
