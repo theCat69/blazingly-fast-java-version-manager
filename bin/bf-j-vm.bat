@@ -1,5 +1,5 @@
-rem Copyright (C) 2023 Félix Vadcard
-rem see LINCENCE.txt for details
+:: Copyright (C) 2023 Félix Vadcard
+:: see LINCENCE.txt for details
 
 @echo off 
 

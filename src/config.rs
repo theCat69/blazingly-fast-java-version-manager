@@ -38,8 +38,6 @@ pub struct JavaVersion {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub user_current_jdk: PathBuf,
-    pub current_java_version: Option<String>,
     pub java_versions: HashMap<String, JavaVersion>,
 }
 
@@ -68,11 +66,7 @@ impl Config {
 impl ::std::default::Default for Config {
     fn default() -> Self {
         let java_versions: HashMap<String, JavaVersion> = HashMap::new();
-        Config {
-            user_current_jdk: BFJVM_DIR.to_path_buf(),
-            current_java_version: None,
-            java_versions,
-        }
+        Config { java_versions }
     }
 }
 

@@ -103,7 +103,6 @@ pub fn initialize_memory() -> Memory {
         match read_hash_and_compare(&memory.config_hash) {
             Ok((new_sha, are_equals)) => {
                 if !are_equals {
-                    println!("Config was changed since last start. Loading it.");
                     memory.mergeconfig(load_conf_or_panic());
                     memory.config_hash = new_sha;
                     memory.save();
