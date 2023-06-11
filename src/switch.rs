@@ -128,9 +128,10 @@ fn global_switch(
 
     let path = match env::var("PATH").ok() {
         Some(envpath) => {
-            let set_path: HashSet<_> = path.split(";").chain(envpath.split(";")).collect();
-            let vec_path: Vec<&str> = set_path.into_iter().collect();
-            vec_path.join(";")
+            let mut vec_paths: Vec<&str> = path.split(";").chain(envpath.split(";")).collect();
+            let mut seen = HashSet::new();
+            vec_paths.retain(|item| seen.insert(*item));
+            vec_paths.join(";")
         }
         None => path,
     };
