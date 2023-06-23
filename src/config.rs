@@ -66,7 +66,7 @@ impl Config {
         };
     }
 
-    pub fn get_javaversion(self: &Self, version: &str) -> &JavaVersion {
+    pub fn get_javaversion(&self, version: &str) -> &JavaVersion {
         self.java_versions
             .get(version)
             .expect("Chosen java version should be configured")
@@ -97,7 +97,7 @@ fn load_config_from_file() -> Result<Config> {
 
 fn init_config_file() -> Result<Config> {
     let config = Config::default();
-    Ok(write_config(config)?)
+    write_config(config)
 }
 
 pub fn write_config(config: Config) -> std::result::Result<Config, Box<dyn Error>> {

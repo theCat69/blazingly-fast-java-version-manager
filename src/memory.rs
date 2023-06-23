@@ -57,19 +57,19 @@ impl Memory {
         }
     }
 
-    fn mergeconfig(self: &mut Self, config: Config) {
+    fn mergeconfig(&mut self, config: Config) {
         self.config = config;
     }
 
-    pub fn get(self: &Self, get: GetCommands, running_prompt: RunningPrompt) {
+    pub fn get(&self, get: GetCommands, running_prompt: RunningPrompt) {
         match get {
             GetCommands::Current { current } => self.get_current(current, running_prompt),
             GetCommands::Config | GetCommands::ConfigPath => self.config.get(&get, running_prompt),
-            GetCommands::Versions { version } => todo!(),
+            GetCommands::Versions { version: _ } => todo!(),
         };
     }
 
-    fn get_current(self: &Self, get_cur: GetCurrentCommands, running_prompt: RunningPrompt) {
+    fn get_current(&self, get_cur: GetCurrentCommands, running_prompt: RunningPrompt) {
         match get_cur {
             GetCurrentCommands::JavaHome => {
                 let java_version = self
@@ -89,7 +89,7 @@ impl Memory {
         }
     }
 
-    pub fn save(self: &Self) {
+    pub fn save(&self) {
         match dump_binaries(self) {
             Ok(()) => (),
             Err(err) => panic!("Could not save memory : {err}"),

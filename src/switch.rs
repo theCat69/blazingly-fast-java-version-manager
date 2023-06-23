@@ -42,10 +42,10 @@ pub fn switch_java_version(java_version_switcher: JavaVersionSwitcher) {
         .expect("Chosen java version is not configured");
 
     if local {
-        local_switch(&config, &version, &java_version, &running_prompt);
+        local_switch(config, version, java_version, &running_prompt);
         println!("Java version was set to {} locally", version);
     } else {
-        global_switch(&version, &java_version, &config, &running_prompt);
+        global_switch(version, java_version, config, &running_prompt);
         memory.java_memory.current_version = version.to_string();
         memory.save();
         println!("Java version was set to {} globally", version);
@@ -86,12 +86,12 @@ fn change_symlink_git_bash(java_version: &JavaVersion) {
 }
 
 fn write_temp_file_if_needed(java_version: &JavaVersion, path: String) {
-    if let Some(tmp_file_path) = env::var("temp_file").ok() {
+    if let Ok(tmp_file_path) = env::var("temp_file") {
         let out = java_version.home_folder.to_string() + "|" + &path;
         let tmp_file_path = Path::new(&tmp_file_path);
 
         fs::write(
-            &tmp_file_path
+            tmp_file_path
                 .to_str()
                 .expect("Temp file should be resolved on disk"),
             out,
@@ -121,7 +121,7 @@ fn global_switch(
     let mut path: String = env
         .get_value("PATH")
         .expect("PATH should exist in any environment");
-    setup_path(&version, &mut path, config);
+    setup_path(version, &mut path, config);
 
     env.set_value("PATH", &path)
         .expect("PATH should be mutable");
@@ -132,8 +132,8 @@ fn global_switch(
             let vec_java_home: Vec<&str> = vec![&home];
             let mut vec_paths: Vec<&str> = vec_java_home
                 .into_iter()
-                .chain(envpath.split(";"))
-                .chain(path.split(";"))
+                .chain(envpath.split(';'))
+                .chain(path.split(';'))
                 .collect();
             let mut seen = HashSet::new();
             vec_paths.retain(|item| seen.insert(*item));
@@ -172,7 +172,7 @@ fn home_to_bin_os_path(home_path: &String) -> String {
         .to_str()
         .expect("Path to be return as str slice")
         .to_string();
-    bin_path.replace("/", "\\") + ";"
+    bin_path.replace('/', "\\") + ";"
 }
 
 #[cfg(target_family = "windows")]

@@ -30,7 +30,7 @@ impl Autocomplete for InitAutocomplete {
         input: &str,
     ) -> std::result::Result<Vec<String>, inquire::CustomUserError> {
         // should convert to CustomUserError here
-        if input == "" {
+        if input.is_empty() {
             self.mem = initial_display().unwrap();
         }
         if exist(Path::new(input)) {
@@ -64,7 +64,7 @@ fn walk_dirs(input: &str) -> std::result::Result<Vec<String>, Box<dyn Error + Se
         .filter_map(|e| e.ok())
     {
         let path = entry.path().to_str().unwrap();
-        if !(path == input) {
+        if path != input {
             vec_to_keep.push(path.to_string());
         }
     }
@@ -72,10 +72,7 @@ fn walk_dirs(input: &str) -> std::result::Result<Vec<String>, Box<dyn Error + Se
 }
 
 fn exist(input_path: &Path) -> bool {
-    match input_path.try_exists().ok() {
-        Some(result) => result,
-        None => false,
-    }
+    input_path.try_exists().ok().unwrap_or(false)
 }
 
 #[cfg(target_family = "windows")]
@@ -100,6 +97,6 @@ fn is_hidden_or_file(entry: &DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
-        .map(|s| path.is_file() || s.starts_with(".") || path.to_str().unwrap_or("$").contains("$"))
+        .map(|s| path.is_file() || s.starts_with('.') || path.to_str().unwrap_or("$").contains('$'))
         .unwrap_or(true)
 }

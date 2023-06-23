@@ -37,6 +37,7 @@ pub struct JavaInstallation {
 }
 
 #[derive(Debug)]
+#[derive(Default)]
 pub enum JavaDistribution {
     GraalVM,
     HotSpot,
@@ -45,11 +46,12 @@ pub enum JavaDistribution {
     OpenLogic,
     Microsoft,
     Zulu,
+    #[default]
     OpenJdk,
 }
 
 impl JavaDistribution {
-    pub fn as_str(self: &Self) -> &str {
+    pub fn as_str(&self) -> &str {
         match self {
             JavaDistribution::GraalVM => "GraalVM",
             JavaDistribution::HotSpot => "HotSpot",
@@ -76,13 +78,9 @@ impl JavaDistribution {
     }
 }
 
-impl Default for JavaDistribution {
-    fn default() -> Self {
-        JavaDistribution::OpenJdk
-    }
-}
 
 pub fn init(running_prompt: RunningPrompt) -> Result<()> {
+
     println!("Starting initalisation of bf-j-vm");
     println!("Searching for java installations");
     let folder_input = Text::new("Please type the folder you want me to search into :")
@@ -92,7 +90,7 @@ pub fn init(running_prompt: RunningPrompt) -> Result<()> {
     let java_installs = build_java_installations(vec_dir_en)?;
     // println!("{:?}", &java_installs);
     for j_i in java_installs {
-        println!("");
+        println!();
         println!("{:?}", j_i.version);
         println!("{:?}", j_i.distribution);
         println!("{:?}", j_i.java_home);
@@ -106,7 +104,7 @@ pub fn init(running_prompt: RunningPrompt) -> Result<()> {
 fn build_java_installations(vec_dir_en: Vec<DirEntry>) -> Result<Vec<JavaInstallation>> {
     let mut java_installs: Vec<JavaInstallation> = Vec::new();
     for entry in vec_dir_en {
-        if let Some(out) = Command::new(entry.path()).arg("-version").output().ok() {
+        if let Ok(out) = Command::new(entry.path()).arg("-version").output() {
             let java_version_out: String = String::from_utf8(out.stderr)?;
             if let Some(java_install) = extract_java_installation(java_version_out, entry) {
                 java_installs.push(java_install);
@@ -120,9 +118,9 @@ fn extract_java_installation(
     java_version_out: String,
     entry: DirEntry,
 ) -> Option<JavaInstallation> {
-    let mut version_out_lines = java_version_out.split("\n");
+    let mut version_out_lines = java_version_out.split('\n');
 
-    let version = version_out_lines.next()?.split("\"").nth(1)?.to_string();
+    let version = version_out_lines.next()?.split('\"').nth(1)?.to_string();
 
     let short_description = version_out_lines.next()?.to_string();
 
