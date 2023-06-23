@@ -24,6 +24,10 @@ lazy_static! {
     pub static ref TMP_DIR: PathBuf = Path::join(&CONFIG_DIR, "tmp");
 }
 
+///You need to never call stdout in this part of the application
+///Because of how bf-j-vm works we need to load memory to give informations
+///To exertnal scripts and stdout will be poluted with anything you put to stdout here
+
 fn init_bfjvm_dir(base_dir: &PathBuf) -> PathBuf {
     let bfjvm_dir = Path::join(base_dir, "current");
     fs::create_dir_all(&bfjvm_dir).expect("To be able to create bfjvm directory");

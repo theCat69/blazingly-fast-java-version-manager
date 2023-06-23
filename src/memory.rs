@@ -20,6 +20,10 @@ lazy_static! {
     pub static ref ENV_PATH: String = env::var("PATH").expect("PATH to be set");
 }
 
+///You need to never call stdout in this part of the application
+///Because of how bf-j-vm works we need to load memory to give informations
+///To external scripts and stdout will be poluted with anything you put to stdout here
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Memory {
     config_hash: String,
