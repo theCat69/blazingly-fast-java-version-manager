@@ -36,8 +36,7 @@ pub struct JavaInstallation {
     distribution: JavaDistribution,
 }
 
-#[derive(Debug)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum JavaDistribution {
     GraalVM,
     HotSpot,
@@ -78,9 +77,7 @@ impl JavaDistribution {
     }
 }
 
-
 pub fn init(running_prompt: RunningPrompt) -> Result<()> {
-
     println!("Starting initalisation of bf-j-vm");
     println!("Searching for java installations");
     let folder_input = Text::new("Please type the folder you want me to search into :")

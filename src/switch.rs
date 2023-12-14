@@ -87,7 +87,7 @@ fn change_symlink_git_bash(java_version: &JavaVersion) {
 
 fn write_temp_file_if_needed(java_version: &JavaVersion, path: String) {
     if let Ok(tmp_file_path) = env::var("temp_file") {
-        let out = java_version.home_folder.to_string() + "|" + &path;
+        let out = to_win_path(&java_version.home_folder) + "|" + &path;
         let tmp_file_path = Path::new(&tmp_file_path);
 
         fs::write(
@@ -116,7 +116,7 @@ fn global_switch(
         .create_subkey("environment")
         .expect("To be able to get evenvironement subkey as mutable");
 
-    env.set_value("JAVA_HOME", &java_version.home_folder)
+    env.set_value("JAVA_HOME", &to_win_path(&java_version.home_folder))
         .expect("JAVA_HOME should be mutable");
     let mut path: String = env
         .get_value("PATH")
@@ -162,6 +162,12 @@ fn setup_path(version: &String, path: &mut String, config: &Config) {
 fn append_to_path(config: &Config, version: &String, path: &mut String) {
     let java_home_folder = config.get_javaversion(version).home_folder.to_string();
     *path = home_to_bin_os_path(&java_home_folder) + path;
+}
+
+#[cfg(target_family = "windows")]
+fn to_win_path(src_path: &String) -> String {
+    let path = Path::new(src_path);
+    path.to_string_lossy().replace('/', "\\")
 }
 
 #[cfg(target_family = "windows")]
