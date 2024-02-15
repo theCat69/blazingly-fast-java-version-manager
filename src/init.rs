@@ -180,7 +180,7 @@ pub fn init_git_bash(running_prompt: RunningPrompt) {
 
     let bashrc = home + "/.bashrc";
     let bashrc_content = fs::read_to_string(&bashrc).expect("To be able to read bashrc content");
-    //TODO delete this part from the file
+
     let bashrc_result = match bashrc_content.contains("##### BFJVM FLAG #####") {
         true => replace_bfjvm_flag(bashrc, bashrc_content, init_file_path),
         false => write_to_end_of_file(bashrc, init_file_path),
