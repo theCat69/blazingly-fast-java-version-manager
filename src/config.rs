@@ -24,6 +24,10 @@ lazy_static! {
     pub static ref TMP_DIR: PathBuf = Path::join(&CONFIG_DIR, "tmp");
 }
 
+///You need to never call stdout in this part of the application
+///Because of how bf-j-vm works we need to load memory to give informations
+///To exertnal scripts and stdout will be poluted with anything you put to stdout here
+
 fn init_bfjvm_dir(base_dir: &PathBuf) -> PathBuf {
     let bfjvm_dir = Path::join(base_dir, "current");
     fs::create_dir_all(&bfjvm_dir).expect("To be able to create bfjvm directory");
@@ -62,7 +66,7 @@ impl Config {
         };
     }
 
-    pub fn get_javaversion(self: &Self, version: &str) -> &JavaVersion {
+    pub fn get_javaversion(&self, version: &str) -> &JavaVersion {
         self.java_versions
             .get(version)
             .expect("Chosen java version should be configured")
@@ -93,7 +97,7 @@ fn load_config_from_file() -> Result<Config> {
 
 fn init_config_file() -> Result<Config> {
     let config = Config::default();
-    Ok(write_config(config)?)
+    write_config(config)
 }
 
 pub fn write_config(config: Config) -> std::result::Result<Config, Box<dyn Error>> {

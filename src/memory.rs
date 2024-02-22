@@ -20,6 +20,10 @@ lazy_static! {
     pub static ref ENV_PATH: String = env::var("PATH").expect("PATH to be set");
 }
 
+///You need to never call stdout in this part of the application
+///Because of how bf-j-vm works we need to load memory to give informations
+///To external scripts and stdout will be poluted with anything you put to stdout here
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Memory {
     config_hash: String,
@@ -53,19 +57,19 @@ impl Memory {
         }
     }
 
-    fn mergeconfig(self: &mut Self, config: Config) {
+    fn mergeconfig(&mut self, config: Config) {
         self.config = config;
     }
 
-    pub fn get(self: &Self, get: GetCommands, running_prompt: RunningPrompt) {
+    pub fn get(&self, get: GetCommands, running_prompt: RunningPrompt) {
         match get {
             GetCommands::Current { current } => self.get_current(current, running_prompt),
             GetCommands::Config | GetCommands::ConfigPath => self.config.get(&get, running_prompt),
-            GetCommands::Versions { version } => todo!(),
+            GetCommands::Versions { version: _ } => todo!(),
         };
     }
 
-    fn get_current(self: &Self, get_cur: GetCurrentCommands, running_prompt: RunningPrompt) {
+    fn get_current(&self, get_cur: GetCurrentCommands, running_prompt: RunningPrompt) {
         match get_cur {
             GetCurrentCommands::JavaHome => {
                 let java_version = self
@@ -85,7 +89,7 @@ impl Memory {
         }
     }
 
-    pub fn save(self: &Self) {
+    pub fn save(&self) {
         match dump_binaries(self) {
             Ok(()) => (),
             Err(err) => panic!("Could not save memory : {err}"),

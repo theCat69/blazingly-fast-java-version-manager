@@ -30,6 +30,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use clap::command;
 use clap::Parser;
 use clap::Subcommand;
 use config::TMP_DIR;
@@ -48,8 +49,19 @@ lazy_static! {
     pub static ref MEMORY: Mutex<Memory> = Mutex::new(initialize_memory());
 }
 
+// We can choose different behavior in function of the os
+// this is compile time choice so remember it
+// We could do the same thing for clap parameters
+// using "flatten" struct
+#[cfg(target_family = "windows")]
+pub static BIN_NAME: &str = "bf-j-vm[.bat|.sh]";
+
+#[cfg(target_family = "linux")]
+pub static BIN_NAME: &str = "bf-j-vm.sh";
+
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
+#[clap(bin_name = BIN_NAME)]
 struct Cli {
     /// This is used internally to indicate which shell is
     /// running the application (hidden)
@@ -171,7 +183,7 @@ fn main() -> Result<()> {
         },
         Commands::Init { init } => match init {
             InitCommands::GitBash => init::init_git_bash(running_prompt),
-            InitCommands::Full => todo!(),
+            InitCommands::Full => init::init(running_prompt).unwrap(),
         },
         Commands::Get { get } => {
             MEMORY
