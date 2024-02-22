@@ -60,13 +60,12 @@ args = ["build", "-r"]
 
 [tasks.dev]
 dependencies = [
-    "build-release",
+    "build",
     "copy-script-os"
 ]
 
 [tasks.release]
 dependencies = [
-    "clean",
     "build-release",
     "assembly"
 ]
